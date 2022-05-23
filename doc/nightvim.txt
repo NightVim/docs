@@ -1,0 +1,163 @@
+================================================================================
+                                                      *nightvim.txt* *night.txt*
+
+NightVim is a configuration framework for Neovim. It manages all the boring
+boilerplate, while letting you have fun configuring the rest.
+
+NightVim inlcudes things such as:                               *night-features*
+Bootstrapping package management with `:h packer.nvim`.
+LSP, Autocompletion and Snippets with `:h lsp`, `:h cmp`, and `:h luasnip`.
+Fzf-style* fuzzy file finding with `:h telescope` and `telescope-fzf-native`.
+Smarter Highlighting with `:h treesitter`.
+Loading regular colorschemes and colorschemes made with `colorbuddy.nvim`.
+Easy to use Lua keymapping wrapper.
+Easily split up your configuration with protected requires.
+
+* Fzf syntax requires CMake and MSVC on Windows and a C compiler and make on
+Unix systems
+
+NightVim comes with some QOL defaults:                          *night-defaults*
+`<leader>w(h|j|k|l)` to switch focus between windows, as an alternative to
+`C-w (h|j|k|l)`.
+`<leader>wq` to close the current window
+`<leader>wsh` and `<leader>wsv` mapped for splitting windows horizontally and
+vertically, respectively.
+`<leader>nr` to reload your NightVim user config, and `<leader>ne` to open your
+NightVim user config for editing.
+`:W` and `:Wq` to use sudo to save root-owned files.
+`:Bquit` to close a buffer while keeping your window splits and positions.
+Lua LSP pre-configured* to make getting started writing your Neovim config in
+Neovim as fast as possible.
+
+* You must manually download sumneko/lua-language-server and place it in your
+`$PATH`.
+
+It also sets the following options
+```
+vim.o.ignorecase = true
+vim.o.mouse = 'nv'
+vim.o.cursorline = true
+vim.o.cursorlineopt = 'screenline'
+vim.o.number = true
+vim.o.relativenumber = true
+vim.o.tabstop = 4
+vim.o.shiftwidth = 4
+vim.o.expandtab = false
+vim.o.scrolloff = 4
+vim.o.splitbelow = true
+vim.o.splitright = true
+vim.g.mapleader = ' '
+```
+
+The Night Prelude makes it easy to assign the functionality of   *night-prelude*
+NightVim to local variables to avoid needing to prefix the functions with
+`night.XXXX`
+
+With the `night.prelude` function, you can optionally include a table of which
+functions you want export.
+```lua
+-- manually binding to local variables
+local prequire = night.prequire
+-- using the full prelude
+local prequire, nmap, vmap, imap, plugins,
+      color, lsp, command, map, log, userconfig = night.prelude()
+-- using part of the full prelude, be mindful you need to assign them in the
+-- same order as above
+local prequire, nmap = night.prelude()
+-- optionally only pull nmap and imap out
+local nmap, imap = night.prelude{"nmap", "imap"}
+```
+
+User plugins are the plugins that you manually install           *night-plugins*
+The `night.plugins` function acts in just the same way as `:h packer-startup`,
+and only just makes sure that the NightVim core-plugins are properly managed
+
+```lua
+night.plugins(function(use)
+    -- Adding a colorscheme, NightVim doesn't ship with anything out of the box
+    use 'nyxkrage/henna.nvim'
+end)
+```
+
+
+Switching the colorscheme is done with the `night.color` function  *night-color*
+and supports loading either colorbuddy.nvim colorschemes or regular vim
+colorschemes.
+```lua
+-- This is a colorscheme that is built using colorbuddy.nvim, and would normally
+-- be loaded with require'colorbuddy'.colorscheme'henna'
+night.color('henna')
+-- This is a regular vim colorscheme, that you would usually load with 
+-- `:colorscheme gruvbox`
+night.color('gruvbox')
+```
+
+Theres quite a few wrappers   *night-map* *night-nmap* *night-imap* *night-vmap* 
+for creating keymaps in NightVim, the ones you will mostly be using are
+`night.nmap`, `night.imap` or `night.vmap`, however just `night.map` is also
+available as a lower level wrapper.
+
+They all follow the same syntax 
+```
+(mode)map{
+    "<The keymap you want to bind>",
+    ":Vim command"/function() <lua code> end,
+    option = value ... 
+}
+```
+
+```lua
+-- Map <leader>km in normal mode to run :echo Ran keymap
+night.nmap{'<leader>km', '<CMD>echo Ran keymap<CR>'}
+-- Map Ctrl+r to a Lua function that prints "ran Ctrl+r" in insert mode only in
+-- buffer 4
+night.imap{'<C-r>', function() print("ran Ctrl+r") end, buffer = 4 }
+```
+If you want to map to multiple modes you can use the `night.map` function
+```lua
+-- Map Ctrl+r in visual and normal mode to print "ran Ctrl+r"
+night.map{'<C-r>', function() print("ran Ctrl+r") end, mode = { 'n', 'v' } }
+```
+
+NightVim provides a wrapper for             *night-prequire* *protected-require*
+pcall('require' ..), `night.prequire`
+
+Instead of loading modules with `pcall`
+```lua
+local has_telescope, telescope = pcall(require, "telescope")
+if not has_telescope then
+  vim.notify('Failed to load telescope module', vim.log.levels.ERROR)
+else
+    telescope.setup(...)
+end
+```
+With `night.prequire` you would do the following
+```lua
+local telescope = night.prequire'telescope'
+if telescope then
+    -- The telescope variable is set to the module, and loaded properly. 
+    telescope.setup(...)
+end
+```
+
+This will also print an error if the module could not be properly loaded with
+the location in your config file of where you called `night.prequire`
+
+FAQ                                                                  *night-faq*
+
+Why not use LunarVim                                        *night-faq-lunarvim*
+
+While [LunarVim](https://github.com/LunarVim/LunarVim) is an awesome project,
+NightVim and LunarVim have very different goals.
+LunarVim aims to be a fully usable IDE out of the box, while NightVim aims to
+reduce the amount of boilerplate you need to have in your config.
+
+
+Why not use kickstart.nvim                                 *night-faq-kickstart*
+
+[Kickstart.nvim](https://github.com/nvim-lua/kickstart.nvim) is an awesome 
+learning project and I would absolutely recommend it for anyone new to
+configuring Neovim with Lua. It also has very different goals compared to NightVim. 
+> The goal of this repo is not to create a neovim configuration framework
+From the Kickstart.nvim repo
+
